@@ -1,0 +1,69 @@
+
+1-Limit
+________________________________
+
+TwitterAPI'den yapılan her istek için belli bir limit vardır.
+Bu limitin tekrar tekrar aşılması durumunda, Twitter tarafından sağlanan API servisi hizmeti kesilebilmektedir.
+Bu durumla karşı karşıya kalmamak için, limit kontrol algoritması geliştirilmiştir.
+
+Twitter4j kütüphanesinde bulunan RateLimitStatus nesnelerine TwitterAPI'den kalan istek haklarımız  çekilebilmektedir.
+Bu RateLimitStatus sınıfında sadece getter metodlar mevcuttur. Limit kontrolünü başarılı bir şekilde yapabilmek için bu sınıfın alanlarından olan, kalan hak alanına müdahale etmemiz gerekmektedir.
+Bu sınıfın kopyası sayılabilecek bir sınıf oluşturulmuştur. LimitTipi adına olan bu sınıf [..ŞEKİL NUMARASI..]
+Şekilde görüldüğü üzere ; Key : ilgili limitin anahtar sözcüğünü, KalanHak : bu limit için kalan hakkı, YenilenmeZamanı : bu limitin tekrardan yenilenecek zamanı Date tipinde tutulmakta.
+TwitterAPI'den her genel limitler için kalan haklar sorgulandığında, RateLimitStatus sınıfından bu LimitTipi sınıfına veriler kopyalanmaktadır.
+Dolayısıyla her yapılan istek için buradaki hak 1 düşürülmekte, isteği yapmadan önce de kalan hakkın olup olmadığı kontrol edilmektedir.
+Eğer hak kalmamışsa, nesne içindeki YenilenmeZamanı' alanının tuttuğu tarihe kadar beklenilmektedir.
+
+
+2-tweet arama
+________________________________
+
+İlgili tweetleri çekmesi için istenilen arama sözcüğü Aramaİçerği'ne verilmektedir.
+Burada TA'da bulunan Sayfa mekanizmasına göre, çekilmek istenen sayfa sayısı girilir.
+TA'da her sayfada 100 tweet gönderilmektedir.
+Kaç sayfa tweet çekilmesi isteniyorsa(sayfa başına 100 tweet) 
+KaçYüz değişkenine verilmekte ve çekilen tweetler bir listede toplanmaktdır.
+Her sayfa isteğinden sonra limit kontrolu yapılmakta ve en son kalınan sayfadan devam edilmektedir.
+
+3-virus total
+________________________________
+Tweet'in veya sahibinin spam olup olmadığının tahmini için bir kriter de Tweet içindeki url paylaşımlarıdır.
+Tweet içeriğindeki tüm Url'ler için tehlikeli olup olmadığı VirusTotal'in sunmuş olduğu API hizmeti kullanılarak belirlenilmektedir.
+VirusTotal bünyesindeki üyelere API hizmetini vermek için Token sağlamaktadır. Verilen Token ile standart üyeler için dakikada 4 veri sorgulama hakkına tabi tutmaktadır.
+Sahip olunan VirusTotal hesaplarını maksimum verimde kullanılabilmek için [ ŞEKİL  Numarası] 'deki algoritma geliştirilmiştir.
+
+İhtiyaç üzerine, VirusTotal adlı sınıf oluşturulmuştur içeriği [ ŞEKİL Numarası]'de gösterilmiştir ;  Anahtar : Hesabın sahip olduğu Token'dir. SonİstekZamanı : Son yapılan isteğin tarihi Date tipinde tutulmaktadır. İstekSayısı : SonİstekZamanı tarihinden sonra yapılan isteklerin toplamıdır int tipinde tutulmaktadır.
+Algoritmada, VirusTotalHesapları adlı dizide tüm VirusTotal hesapları tutulmaktadır. Ve bu hesaplar arasında iterasyonu sağlamak için int tipinde bir indeks tutucu oluşturulmuştur.
+Bu algoritmaya, kontrol edilmesi istenilen url gönderildiğinde, sıradaki VirusTotal hesabı üzerinde şu işlemler gerçekleştirilir ;
+*Eğer SonİstekZamanı boş ise daha önce istek yapılmamış demektir, dolayısıyla ilk istek başka kontrole gerek kalmadan sorgu istek yapılabilir. Ve ardından SonİstekZamanı güncellenirken İstekSayısı 1 yapılır.
+*Eğer SonİstekZamanı dolu ise, İstekSayısı'na bakılır 4 sınırı aşılmamış ise istek yapılır ve İstekSayısı 1 artırılır.
+*Eğer SonİstekZamanı dolu ve İstekSayısı 4'e erişmiş ve SonİstekZamanı üzerinden 1 dakika geçmişse, istek yapılması ardından, SonİstekZamanı güncellenirken İstekSayısı 1 yapılır.
+*Eğer SonİstekZamanı dolu ve İstekSayısı 4'e erişmiş ve SonİstekZamanı üzerinden 1 dakika geçmemişse, 200ms Beklendikten sonra sıradaki VirusTotal hesabına geçiş yapılıp aynı işlemler gerçekleşir. Ta ki istek gerçekleşene kadar.
+Bu algoritma projede özyineli fonksiyon olarak kodlanmıştır ; Hiçbir hesapta 1 dakika sürenin dolmaması ve 4 sınırına erişmiş olması durumunda, algoritma akışı gereği, tekrar tekrar sıradaki hesaba geçiş yapılıp Stack'in şişmesine neden olacaktır.
+Bu sorunun çözümü için son maddede görülen 200ms bekleme işlemi yapılmıştır.
+
+4-spam tweet arama
+________________________________
+
+Temel niteliği taşıyan fonksiyonların tamamlanması ardından(İzinler, Url Kontrol, Tweet Çekme), Teste tabi tutmak amacıyla Spam tweet arama işlemi gerçekleştirmek için, [ ŞEKİL Numarası ]'deki algoritma geliştirilmiştir.
+
+*TweetArama Algoritması ile istenilen kelimeye göre istenilen miktarda Tweet çekimi gerçekleştirilir.
+*Tüm bu Tweet'ler ÇekilenTweetler adlı listede tutulur.
+*ÇekilenTweetler adlı listedeki her bir Tweet için aşağıdaki maddelerdeki işlemler uygulanır
+**Sıradaki Tweet'in içinde Url varsa, hepsi VirusTotal Algoritmasına Gönderilir.
+***En az bir Url şüpheli ise Bu Tweet Ve Sahibi'nin bilgileri test edilmeye uygun formata getirilip veritabanına "URL_SPAMMER" etiketiyle kaydedilir.
+***Bu Tweet sahibini takip edenler de spam kabul edilir ve onların da paylaştığı Tweet'ler Sahiplerinin bilgileriyle teste uygun formata getirilip, veritabanına "FRIEND_SPAMMER" etiketiyle kaydedilir.
+**Sıradaki Tweet içeriği, diğer ÇekilenTweetler içindeki Tweet'lerin içeriği ile karşılaştırılır. Bu karşılaştırma Levenshtein Distance Algoritması ile yapılmıştır. En az 20 karakter olup %90 ve üzeri benzeşme sağlayan başka bir Tweet varsa, bu Tweet'ler sahiplerinin bilgileriyle teste uygun formata getirildikten sonra, veritabanına "SIMILARITY_SPAMMER" etiketiyle kaydedilir.
+
+
+
+5-test
+________________________________
+
+Bir önceki konuda spam teşhisi koyulan Tweet'ler veritabanına kaydedilmişti. Bu Tweet'ler test edilme amacıyla programa veritabanından çekilip TestTweetleri adlı listeye eklenir.
+Eğitim için ise veritabanında eğitim verileri olduğu kabul edilerek, EğitimTweetleri listesine eklenir.
+Bu eğitim ve test işlemi WekaAPI kullanılarak gerçekleştirilecektir. Dolayısıyla elde edilen eğitim ve test Tweet'leri Arff dosyasına, hazırlanan özel metot ile çevrilmektedir.
+Bu metot, oluşturulan Arff dosyasını BufferReader nesnesi olarak geri döndürmektedir.
+Ardından eğitim ve testin hangi algoritma ile yapılacağı seçilmektedir.
+Eğitim ve testing ardından Confusion Matrix ekrana yazdırılmaktadır.
+

@@ -1,0 +1,10 @@
+package wekaApi;
+
+public enum AlgorithmType {
+    NAIVE_BAYES,
+    SUPPORT_VECTOR_MACHINE,
+    LOGISTIC_REGRESSION,
+    K_NEAREST_NEIGHBOURS,
+    RANDOM_FOREST,
+    RANDOM_TREE
+}
